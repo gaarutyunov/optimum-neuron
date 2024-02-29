@@ -1091,8 +1091,8 @@ class AugmentTrainerForNeuronMixin:
 
         self._memory_tracker.stop_and_update_metrics(metrics)
 
-        if is_main_worker_for_metrics():
-            self.log(metrics)
+        # if is_main_worker_for_metrics():
+        #     self.log(metrics)
 
         run_dir = self._get_output_dir(trial)
         checkpoints_sorted = self._sorted_checkpoints(use_mtime=False, output_dir=run_dir)

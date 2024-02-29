@@ -28,6 +28,7 @@ from transformers import PreTrainedModel
 from transformers.utils import WEIGHTS_NAME
 
 from ...utils import logging
+from ..utils.training_utils import is_precompilation
 from ..utils import is_neuronx_distributed_available, is_torch_xla_available
 from ..utils.misc import is_main_worker
 from ..utils.patching import Patcher
@@ -276,6 +277,10 @@ class Parallelizer(ABC):
     def _maybe_load_weights_to_parallel_linears(cls, model: "PreTrainedModel"):
         from neuronx_distributed.parallel_layers.layers import BaseParallelLinear
 
+        if is_precompilation():
+            # The weight value does not influence precompilation, so we do not load the weights to be faster.
+            return
+
         weight_map = getattr(model, "_weight_map", {})
 
         for fully_qualified_name, layer in model.named_modules():
@@ -321,10 +326,14 @@ class Parallelizer(ABC):
                 if name not in names_of_the_parameters_to_consider:
                     continue
 
-                try:
-                    weight_info = WeightInformation(weight_map[name], name, weight_map=weight_map, device=device)
-                except KeyError:
+                if is_precompilation():
+                    # The weight value does not influence precompilation, so we do not load the weights to be faster.
                     weight_info = None
+                else:
+                    try:
+                        weight_info = WeightInformation(weight_map[name], name, weight_map=weight_map, device=device)
+                    except KeyError:
+                        weight_info = None
 
                 if parameter in new_parameters:
                     # It can be the case if a module is shared in the model.
@@ -374,7 +383,10 @@ class Parallelizer(ABC):
                     # This means that there is no information about where to find the weights for this parameter.
                     device = torch.device("cpu") if device is None else device
                     new_parameter = torch.nn.Parameter(torch.empty_like(parameter, device=device))
-                    modules_to_initialize[module].append(attribute_name)
+                    if is_precompilation():
+                        # The weight value does not influence precompilation, so we do not initialize the weights to be 
+                        # faster.
+                        modules_to_initialize[module].append(attribute_name)
 
                 setattr(
                     module,
