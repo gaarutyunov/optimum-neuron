@@ -129,8 +129,8 @@ for model_type in _SUPPORTED_MODEL_TYPES:
 
 
 _MODEL_TYPE_TO_OPTLEVEL: Dict[str, str] = {
-    "default": "-O2",
-    "llama": "-O1",
+    "default": "2",
+    "llama": "1",
 }
 
 
@@ -305,7 +305,7 @@ def prepare_environment_for_neuron():
     os.environ["MALLOC_ARENA_MAX"] = "64"
 
 
-def set_neuron_cc_optlevel_for_model(model: "PreTrainedModel", optlevel: str = "auto"):
+def set_neuronx_cc_optlevel_for_model(model: "PreTrainedModel", optlevel: str = "auto"):
     """
     Sets the Neuron compiler optimization level considering both `model` and `optlevel`.
     If `optlevel` is different than `"auto"`, it will be set to that value, otherwise the default value for a given
@@ -314,15 +314,17 @@ def set_neuron_cc_optlevel_for_model(model: "PreTrainedModel", optlevel: str = "
     if optlevel == "auto":
         optlevel = _MODEL_TYPE_TO_OPTLEVEL.get(model.config.model_type, _MODEL_TYPE_TO_OPTLEVEL["default"])
     neuron_cc_flags = os.environ.get("NEURON_CC_FLAGS", "")
-    match_ = re.search(r"-O[123]", neuron_cc_flags)
+    match_ = re.search(r"--optlevel [123]", neuron_cc_flags)
     if match_:
-        neuron_cc_flags = neuron_cc_flags[: match_.start(0)] + f"{optlevel}" + neuron_cc_flags[match_.end(0) + 1 :]
+        neuron_cc_flags = (
+            neuron_cc_flags[: match_.start(0)] + f"--optlevel {optlevel}" + neuron_cc_flags[match_.end(0) + 1 :]
+        )
     else:
-        neuron_cc_flags += f" {optlevel} "
+        neuron_cc_flags += f" --optlevel {optlevel} "
     os.environ["NEURON_CC_FLAGS"] = neuron_cc_flags
 
 
-def set_neuron_cc_flags_for_model(model: "PreTrainedModel"):
+def set_neuronx_cc_flags_for_model(model: "PreTrainedModel"):
     """
     Sets flags for the Neuron compiler depending on the model.
     """

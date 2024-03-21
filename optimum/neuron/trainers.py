@@ -93,8 +93,8 @@ from .utils.training_utils import (
     is_topology_supported,
     patch_generation_mixin_to_neuron_generation_mixin,
     prepare_environment_for_neuron,
-    set_neuron_cc_flags_for_model,
-    set_neuron_cc_optlevel_for_model,
+    set_neuronx_cc_flags_for_model,
+    set_neuronx_cc_optlevel_for_model,
     skip_first_batches,
     torch_xla_safe_save_file,
 )
@@ -181,8 +181,8 @@ class AugmentTrainerForNeuronMixin:
         # Make the model Neuron-compatible for generation.
         patch_generation_mixin_to_neuron_generation_mixin(self.model)
 
-        set_neuron_cc_optlevel_for_model(self.model, optlevel=self.args.neuron_cc_optlevel)
-        set_neuron_cc_flags_for_model(self.model)
+        set_neuronx_cc_optlevel_for_model(self.model, optlevel=self.args.neuronx_cc_optlevel)
+        set_neuronx_cc_flags_for_model(self.model)
 
         # Model cache entry management.
         model_name_or_path_for_cache_entry = get_model_name_or_path(self.model.config)
