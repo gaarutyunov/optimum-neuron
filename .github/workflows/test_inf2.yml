@@ -25,6 +25,8 @@ jobs:
     env:
       AWS_REGION: us-east-1
     steps:
+      - name: wait for apt update
+        run : sleep 5m
       - name: Tailscale
         uses: huggingface/tailscale-action@ssh-improvments
         with:
