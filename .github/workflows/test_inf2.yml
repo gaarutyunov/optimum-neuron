@@ -26,7 +26,7 @@ jobs:
       AWS_REGION: us-east-1
     steps:
       - name: Tailscale
-        uses: huggingface/tailscale-action@main
+        uses: huggingface/tailscale-action@ssh-improvments
         with:
           authkey: ${{ secrets.TAILSCALE_SSH_AUTHKEY }}
           debugEnabled: ${{ secrets.ACTIONS_STEP_DEBUG }}
