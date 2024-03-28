@@ -33,9 +33,8 @@ jobs:
           EOF
           wget -qO - https://apt.repos.neuron.amazonaws.com/GPG-PUB-KEY-AMAZON-AWS-NEURON.PUB | sudo apt-key add -
           sudo apt-get update -y
-          #sudo apt-get install linux-headers-$(uname -r) -y
-          #sudo apt-get install udev pciutils 
           sudo apt-get install aws-neuronx-tools aws-neuronx-oci-hook aws-neuronx-runtime-lib aws-neuronx-collectives -y
+          export PATH=/opt/aws/neuron/bin:$PATH
       - name: Check AMI
         run: dpkg -l | grep neuron
       - name: Checkout
