@@ -21,12 +21,18 @@ concurrency:
 jobs:
   do-the-job:
     name: Run INF2 tests
-    runs-on: [self-hosted, 1-aws-inf2, 32-cpu, test-ci] # run the job on the newly created runner
+    runs-on: [self-hosted, 1-aws-inf2, 32-cpu, ci] # run the job on the newly created runner
     env:
       AWS_REGION: us-east-1
     steps:
-      - name: sleep
-        run: sleep 60m
+      - name: Tailscale
+        uses: huggingface/tailscale-action@main
+        with:
+          authkey: ${{ secrets.TAILSCALE_SSH_AUTHKEY }}
+          debugEnabled: ${{ secrets.ACTIONS_STEP_DEBUG }}
+          slackChannel: ${{ secrets.SLACK_CIFEEDBACK_CHANNEL }}
+          slackToken: ${{ secrets.SLACK_CIFEEDBACK_BOT_TOKEN }}
+          waitForSSH: true
       - name: Check AMI
         run: dpkg -l | grep neuron
       - name: Checkout
