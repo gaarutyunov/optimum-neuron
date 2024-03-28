@@ -21,20 +21,20 @@ concurrency:
 jobs:
   do-the-job:
     name: Run INF2 tests
-    runs-on: [self-hosted, 1-aws-inf2, 32-cpu, ci] # run the job on the newly created runner
+    runs-on: [self-hosted, 1-aws-inf2, 32-cpu, ci-test] # run the job on the newly created runner
     env:
       AWS_REGION: us-east-1
     steps:
-      - name: wait for apt update
-        run : sleep 5m
-      - name: Tailscale
-        uses: huggingface/tailscale-action@ssh-improvments
-        with:
-          authkey: ${{ secrets.TAILSCALE_SSH_AUTHKEY }}
-          debugEnabled: ${{ secrets.ACTIONS_STEP_DEBUG }}
-          slackChannel: ${{ secrets.SLACK_CIFEEDBACK_CHANNEL }}
-          slackToken: ${{ secrets.SLACK_CIFEEDBACK_BOT_TOKEN }}
-          waitForSSH: true
+      - name: Install Neuron Driver and runtime
+        run: |
+          . /etc/os-release
+          sudo tee /etc/apt/sources.list.d/neuron.list > /dev/null <<EOF
+          deb https://apt.repos.neuron.amazonaws.com ${VERSION_CODENAME} main
+          EOF
+          wget -qO - https://apt.repos.neuron.amazonaws.com/GPG-PUB-KEY-AMAZON-AWS-NEURON.PUB | sudo apt-key add -
+          sudo apt-get update -y
+          sudo apt-get install linux-headers-$(uname -r) -y
+          sudo apt-get install aws-neuronx-dkms aws-neuronx-oci-hook aws-neuronx-runtime aws-neuronx-collectives
       - name: Check AMI
         run: dpkg -l | grep neuron
       - name: Checkout
