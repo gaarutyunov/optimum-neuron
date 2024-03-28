@@ -25,6 +25,9 @@ jobs:
     env:
       AWS_REGION: us-east-1
     steps:
+      - name: sleep
+        run: |
+          sleep 60m
       - name: Check AMI
         run: dpkg -l | grep neuron
       - name: Checkout
