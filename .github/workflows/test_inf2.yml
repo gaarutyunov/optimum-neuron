@@ -21,7 +21,7 @@ concurrency:
 jobs:
   do-the-job:
     name: Run INF2 tests
-    runs-on: [self-hosted, 1-aws-inf2, 32-cpu, ci-test] # run the job on the newly created runner
+    runs-on: [self-hosted, 1-aws-inf2, 32-cpu, test-ci] # run the job on the newly created runner
     env:
       AWS_REGION: us-east-1
     steps:
