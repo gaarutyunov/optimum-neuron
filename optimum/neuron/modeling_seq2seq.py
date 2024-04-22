@@ -260,7 +260,8 @@ class NeuronModelForConditionalGeneration(NeuronBaseModel, ABC):
         force_download: bool = True,
         cache_dir: Optional[str] = None,
         compiler_workdir: Optional[str] = None,
-        inline_weights_to_neff: bool = True,
+        disable_neuron_cache: bool = False,
+        inline_weights_to_neff: bool = False,
         optlevel: str = "2",
         subfolder: str = "",
         local_files_only: bool = False,
@@ -268,8 +269,6 @@ class NeuronModelForConditionalGeneration(NeuronBaseModel, ABC):
         task: Optional[str] = None,
         auto_cast: Optional[str] = "matmul",
         auto_cast_type: Optional[str] = "bf16",
-        disable_fast_relayout: Optional[bool] = False,
-        disable_fallback: bool = False,
         dynamic_batch_size: bool = False,
         output_attentions: bool = False,
         output_hidden_states: bool = False,
@@ -282,15 +281,53 @@ class NeuronModelForConditionalGeneration(NeuronBaseModel, ABC):
 
         if task is None:
             task = TasksManager.infer_task_from_model(cls.auto_model_class)
+        
+        # mandatory shapes
+        input_shapes = normalize_stable_diffusion_input_shapes(kwargs_shapes)
 
         # Get compilation arguments
         auto_cast_type = None if auto_cast is None else auto_cast_type
         compiler_kwargs = {
             "auto_cast": auto_cast,
             "auto_cast_type": auto_cast_type,
-            "disable_fast_relayout": disable_fast_relayout,
-            "disable_fallback": disable_fallback,
         }
+        
+        model = TasksManager.get_model_from_task(
+            task=task,
+            model_name_or_path=model_id,
+            subfolder=subfolder,
+            revision=revision,
+            framework="pt",
+            library_name=cls.library_name,
+            cache_dir=cache_dir,
+            use_auth_token=use_auth_token,
+            local_files_only=local_files_only,
+            force_download=force_download,
+            trust_remote_code=trust_remote_code,
+        )
+        
+        # Check if the cache exists
+        if not inline_weights_to_neff and not disable_neuron_cache:
+            save_dir = TemporaryDirectory()
+            save_dir_path = Path(save_dir.name)
+            # 1. Fetch all model configs
+            models_and_neuron_configs, _ = load_models_and_neuron_configs(
+                model_name_or_path=model_id,
+                output=save_dir_path,
+                model=model,
+                task=task,
+                dynamic_batch_size=dynamic_batch_size,
+                cache_dir=cache_dir,
+                trust_remote_code=trust_remote_code,
+                subfolder=subfolder,
+                revision=revision,
+                force_download=force_download,
+                local_files_only=local_files_only,
+                use_auth_token=use_auth_token,
+                **input_shapes,
+            )
+            
+        
 
         save_dir = TemporaryDirectory()
         save_dir_path = Path(save_dir.name)

@@ -31,6 +31,7 @@ from optimum.neuron import (
     NeuronModelForSequenceClassification,
     NeuronStableDiffusionPipeline,
     NeuronStableDiffusionXLPipeline,
+    NeuronModelForSeq2SeqLM,
 )
 from optimum.neuron.utils import get_hub_cached_entries, synchronize_hub_cache
 from optimum.neuron.utils.testing_utils import is_inferentia_test, requires_neuronx
@@ -125,6 +126,19 @@ def export_stable_diffusion_xl_model(model_id):
     )
 
 
+def export_seq2seqlm_model(model_id):
+    batch_size = 1
+    sequence_length = 64
+    num_beams = 4
+    return NeuronModelForSeq2SeqLM.from_pretrained(
+        model_id,
+        export=True,
+        batch_size=batch_size,
+        sequence_length=sequence_length,
+        num_beams=num_beams,
+    )
+
+
 def check_decoder_generation(model):
     batch_size = model.config.neuron["batch_size"]
     input_ids = torch.ones((batch_size, 20), dtype=torch.int64)
@@ -144,6 +158,17 @@ def check_stable_diffusion_inference(model):
     prompts = ["sailing ship in storm by Leonardo da Vinci"]
     image = model(prompts, num_images_per_prompt=4).images[0]
     assert isinstance(image, PIL.Image.Image)
+
+
+def check_seq2seqlm_inference(model, tokenizer):
+    text = "translate English to German: Lets eat good food."
+    inputs = tokenizer(text, return_tensors="pt")
+    num_return_sequences = 1
+    outputs = model.generate(
+        **inputs,
+        num_return_sequences=num_return_sequences,
+    )
+    assert "logits" in outputs
 
 
 def get_local_cached_files(cache_path, extension="*"):
@@ -299,6 +324,37 @@ def test_stable_diffusion_xl_cache(cache_repos):
     # Export the model again: the compilation artifacts should be fetched from the Hub
     model = export_stable_diffusion_xl_model(model_id)
     check_stable_diffusion_inference(model)
+    # Verify the local cache directory has not been populated
+    assert len(get_local_cached_files(cache_path, ".neuron")) == 0
+
+
+@is_inferentia_test
+@requires_neuronx
+def test_seq2seqlm_cache(cache_repos):
+    cache_path, cache_repo_id = cache_repos
+    model_id = "hf-internal-testing/tiny-random-t5"
+    # Export the model a first time to populate the local cache
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    model = export_seq2seqlm_model(model_id)
+    check_seq2seqlm_inference(model, tokenizer)
+    # check registry
+    check_traced_cache_entry(cache_path)
+    # Synchronize the hub cache with the local cache
+    synchronize_hub_cache(cache_repo_id=cache_repo_id)
+    assert_local_and_hub_cache_sync(cache_path, cache_repo_id)
+    # Verify we are able to fetch the cached entry for the model
+    model_entries = get_hub_cached_entries(model_id, "inference", cache_repo_id=cache_repo_id)
+    assert len(model_entries) == 1
+    # Clear the local cache
+    for root, dirs, files in os.walk(cache_path):
+        for f in files:
+            os.unlink(os.path.join(root, f))
+        for d in dirs:
+            shutil.rmtree(os.path.join(root, d))
+    assert local_cache_size(cache_path) == 0
+    # Export the model again: the compilation artifacts should be fetched from the Hub
+    model = export_seq2seqlm_model(model_id)
+    check_seq2seqlm_inference(model, tokenizer)
     # Verify the local cache directory has not been populated
     assert len(get_local_cached_files(cache_path, ".neuron")) == 0
 
