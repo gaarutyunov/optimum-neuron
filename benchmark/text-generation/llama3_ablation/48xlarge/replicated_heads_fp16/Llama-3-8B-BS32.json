@@ -1,0 +1,71 @@
+{
+    "neuron_config": {
+        "auto_cast_type": "fp16",
+        "batch_size": 32,
+        "checkpoint_id": "meta-llama/Meta-Llama-3-8B",
+        "checkpoint_revision": "1460c22666392e470910ce3d44ffeb2ab7dbd4df",
+        "compiler_type": "neuronx-cc",
+        "compiler_version": "2.13.66.0+6dfecc895",
+        "num_cores": 8,
+        "sequence_length": 4096,
+        "task": "text-generation"
+    },
+    "results": [
+        {
+            "input_length": 256,
+            "batch_size": 32,
+            "encoding_time": 17.32479739189148,
+            "new_tokens": 256,
+            "latency": 87.22640760242939,
+            "throughput": 206.58302981199196
+        },
+        {
+            "input_length": 512,
+            "batch_size": 32,
+            "encoding_time": 17.921777725219727,
+            "new_tokens": 256,
+            "latency": 82.07015413790941,
+            "throughput": 210.41958547013775
+        },
+        {
+            "input_length": 768,
+            "batch_size": 32,
+            "encoding_time": 17.444019317626953,
+            "new_tokens": 256,
+            "latency": 1.3244431465864182,
+            "throughput": 460.6626912264138
+        },
+        {
+            "input_length": 1024,
+            "batch_size": 32,
+            "encoding_time": 17.457239866256714,
+            "new_tokens": 256,
+            "latency": 82.72765763103962,
+            "throughput": 212.0328638878051
+        },
+        {
+            "input_length": 1280,
+            "batch_size": 32,
+            "encoding_time": 17.888243675231934,
+            "new_tokens": 256,
+            "latency": 89.59764242172241,
+            "throughput": 200.66017916544212
+        },
+        {
+            "input_length": 1536,
+            "batch_size": 32,
+            "encoding_time": 17.86714267730713,
+            "new_tokens": 256,
+            "latency": 85.65045520663261,
+            "throughput": 205.8619428971529
+        },
+        {
+            "input_length": 1792,
+            "batch_size": 32,
+            "encoding_time": 17.88844919204712,
+            "new_tokens": 256,
+            "latency": 84.24879610538483,
+            "throughput": 207.62294014087166
+        }
+    ]
+}
