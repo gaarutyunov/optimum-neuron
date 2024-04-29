@@ -94,7 +94,12 @@ class NeuronPartialState(PartialState):
                 set_common_flags()
                 if os.environ.get("ACCELERATE_USE_AMP", "false") == "true":
                     set_neuron_cc_flags_for_torch_amp()
-                init_process_group()
+                if not torch.distributed.is_initialized():
+                    init_process_group()
+                else:
+                    logger.warning(
+                        "torch.distributed was already initialized, the Neuron compiler flags you set might be ignored."
+                    )
                 self.distributed_type = DistributedType.TPU
                 self.num_processes = xm.xrt_world_size()
                 self.process_index = xm.get_ordinal()
