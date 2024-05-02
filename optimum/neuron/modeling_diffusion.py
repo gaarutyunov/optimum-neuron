@@ -344,6 +344,17 @@ class NeuronStableDiffusionPipelineBase(NeuronBaseModel):
             weight = getattr(weights, name, None)
             if model is not None and weight is not None:
                 model = replace_weights(model.model, weight)
+    
+    def load_lora_weights(
+        self, 
+        lora_model_ids: Union[str, List[str]], 
+        lora_weight_names: Optional[Union[str, List[str]]] = None, 
+        lora_adapter_names: Optional[Union[str, List[str]]] = None,
+        lora_scales: Optional[Union[float, List[float]]] = None,
+    ):
+        pass
+    
+    
 
     @staticmethod
     def set_default_dp_mode(unet_config):
@@ -910,6 +921,15 @@ class NeuronModelUnet(_NeuronDiffusionModelPart):
 
         outputs = self.model(*tuple(inputs.values()))
         return outputs
+    
+    def load_attn_procs(
+        self, 
+        lora_model_ids: Union[str, List[str]], 
+        lora_weight_names: Optional[Union[str, List[str]]] = None, 
+        lora_adapter_names: Optional[Union[str, List[str]]] = None,
+        lora_scales: Optional[Union[float, List[float]]] = None,
+    ):
+        pass
 
 
 class NeuronModelVaeEncoder(_NeuronDiffusionModelPart):
