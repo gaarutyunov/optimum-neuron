@@ -305,6 +305,9 @@ def _load_lora_weights_to_pipeline(
                 pipeline.set_adapters(adapter_names, adapter_weights=lora_scales)
             pipeline.fuse_lora()
 
+        # Unload the LoRA weights since they’ve already been fused with the underlying base model.
+        pipeline.unload_lora_weights()
+
     return pipeline
 
 

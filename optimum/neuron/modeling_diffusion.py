@@ -79,6 +79,7 @@ if is_diffusers_available():
     )
     from diffusers.configuration_utils import FrozenDict
     from diffusers.image_processor import VaeImageProcessor
+    from diffusers.loaders import LoraLoaderMixin, StableDiffusionXLLoraLoaderMixin
     from diffusers.schedulers.scheduling_utils import SCHEDULER_CONFIG_NAME
     from diffusers.utils import CONFIG_NAME, is_invisible_watermark_available
 
@@ -100,7 +101,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class NeuronStableDiffusionPipelineBase(NeuronBaseModel):
+class NeuronStableDiffusionPipelineBase(NeuronBaseModel, LoraLoaderMixin):
     auto_model_class = StableDiffusionPipeline
     library_name = "diffusers"
     base_model_prefix = "neuron_model"
@@ -344,17 +345,15 @@ class NeuronStableDiffusionPipelineBase(NeuronBaseModel):
             weight = getattr(weights, name, None)
             if model is not None and weight is not None:
                 model = replace_weights(model.model, weight)
-    
+
     def load_lora_weights(
-        self, 
-        lora_model_ids: Union[str, List[str]], 
-        lora_weight_names: Optional[Union[str, List[str]]] = None, 
+        self,
+        lora_model_ids: Union[str, List[str]],
+        lora_weight_names: Optional[Union[str, List[str]]] = None,
         lora_adapter_names: Optional[Union[str, List[str]]] = None,
         lora_scales: Optional[Union[float, List[float]]] = None,
     ):
         pass
-    
-    
 
     @staticmethod
     def set_default_dp_mode(unet_config):
@@ -907,6 +906,9 @@ class NeuronModelUnet(_NeuronDiffusionModelPart):
         added_cond_kwargs: Optional[Dict[str, torch.Tensor]] = None,
         timestep_cond: Optional[torch.Tensor] = None,
     ):
+        import pdb
+
+        pdb.set_trace()
         timestep = timestep.float().expand((sample.shape[0],))
         inputs = {
             "sample": sample,
@@ -921,11 +923,11 @@ class NeuronModelUnet(_NeuronDiffusionModelPart):
 
         outputs = self.model(*tuple(inputs.values()))
         return outputs
-    
+
     def load_attn_procs(
-        self, 
-        lora_model_ids: Union[str, List[str]], 
-        lora_weight_names: Optional[Union[str, List[str]]] = None, 
+        self,
+        lora_model_ids: Union[str, List[str]],
+        lora_weight_names: Optional[Union[str, List[str]]] = None,
         lora_adapter_names: Optional[Union[str, List[str]]] = None,
         lora_scales: Optional[Union[float, List[float]]] = None,
     ):
@@ -995,7 +997,7 @@ class NeuronLatentConsistencyModelPipeline(NeuronStableDiffusionPipelineBase, Ne
     __call__ = NeuronLatentConsistencyPipelineMixin.__call__
 
 
-class NeuronStableDiffusionXLPipelineBase(NeuronStableDiffusionPipelineBase):
+class NeuronStableDiffusionXLPipelineBase(NeuronStableDiffusionPipelineBase, StableDiffusionXLLoraLoaderMixin):
     # `TasksManager` registered img2ime pipeline for `stable-diffusion-xl`: https://github.com/huggingface/optimum/blob/v1.12.0/optimum/exporters/tasks.py#L174
     auto_model_class = StableDiffusionXLImg2ImgPipeline
 
