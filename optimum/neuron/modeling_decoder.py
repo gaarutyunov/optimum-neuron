@@ -42,7 +42,7 @@ NEURON_MAJOR_LINE = re.compile(r"^\s*(\d+)\s+neuron\s*$")
 
 if is_transformers_neuronx_available():
     from transformers_neuronx.config import ContinuousBatchingConfig, NeuronConfig
-
+    from transformers_neuronx.constants import GQA
 
 if TYPE_CHECKING:
     from transformers import PretrainedConfig
@@ -181,11 +181,17 @@ class NeuronDecoderModel(OptimizedModel):
             tnx_kwargs["neuron_config"] = NeuronConfig(
                 continuous_batching=ContinuousBatchingConfig(batch_size_for_shared_caches=batch_size),
                 attention_layout=exporter.attention_layout,
+                fuse_qkv=True,
+                group_query_attention = GQA.REPLICATED_HEADS,
             )
             tnx_kwargs["n_positions"] = [sequence_length]
             tnx_kwargs["context_length_estimate"] = [sequence_length]
         else:
-            tnx_kwargs["neuron_config"] = NeuronConfig(attention_layout=exporter.attention_layout)
+            tnx_kwargs["neuron_config"] = NeuronConfig(
+                attention_layout=exporter.attention_layout,
+                fuse_qkv=True,
+                group_query_attention = GQA.REPLICATED_HEADS,
+            )
             tnx_kwargs["n_positions"] = sequence_length
 
         # Instantiate neuronx model
