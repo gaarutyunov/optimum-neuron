@@ -41,7 +41,7 @@ MAJORS_FILE = "/proc/devices"
 NEURON_MAJOR_LINE = re.compile(r"^\s*(\d+)\s+neuron\s*$")
 
 if is_transformers_neuronx_available():
-    from transformers_neuronx.config import ContinuousBatchingConfig, NeuronConfig
+    from transformers_neuronx.config import ContinuousBatchingConfig, NeuronConfig, QuantizationConfig
     from transformers_neuronx.constants import GQA
 
 if TYPE_CHECKING:
@@ -183,6 +183,7 @@ class NeuronDecoderModel(OptimizedModel):
                 attention_layout=exporter.attention_layout,
                 fuse_qkv=True,
                 group_query_attention = GQA.REPLICATED_HEADS,
+                quant=QuantizationConfig(),
             )
             tnx_kwargs["n_positions"] = [sequence_length]
             tnx_kwargs["context_length_estimate"] = [sequence_length]
@@ -191,6 +192,7 @@ class NeuronDecoderModel(OptimizedModel):
                 attention_layout=exporter.attention_layout,
                 fuse_qkv=True,
                 group_query_attention = GQA.REPLICATED_HEADS,
+                quant=QuantizationConfig(),
             )
             tnx_kwargs["n_positions"] = sequence_length
 
@@ -216,6 +218,7 @@ class NeuronDecoderModel(OptimizedModel):
             neuron_rt_num_cores = os.environ.get("NEURON_RT_NUM_CORES", None)
             # Restrict the number of cores used to allow multiple models on the same host
             os.environ["NEURON_RT_NUM_CORES"] = str(num_cores)
+            os.environ["NEURON_INTERNAL_TRANSFORM_WEIGHT_LAYOUT"] = "1"
             # Load the model on neuron cores (if found in cache or compiled directory, the NEFF files
             # will be reloaded instead of compiled)
             neuronx_model.to_neuron()
