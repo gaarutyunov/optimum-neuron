@@ -1,0 +1,4 @@
+model_id,concurrent requests,throughput (t/s),Time-to-first-token @ P50 (s),average latency (ms)
+huggingface-pytorch-tgi-inference-2024-06-14-08-13-09-941,8,75.94979671541692,7.072625149501619,78.37042526902042
+huggingface-pytorch-tgi-inference-2024-06-14-08-13-09-941,10,74.89914086874131,7.652120906499476,85.37716568559652
+huggingface-pytorch-tgi-inference-2024-06-14-08-13-09-941,16,81.18607844589843,9.057689290501003,109.0086228617989
