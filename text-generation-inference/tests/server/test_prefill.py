@@ -67,7 +67,7 @@ def test_prefill_truncate(neuron_model_config):
     # be different because of the truncation
     expectations = {
         "gpt2": [" He", " He", "\n", " He"],
-        "llama": ["\n", "\n", " He", "\n"],
+        "llama": [" —", " The", " He", " He"],
         "mistral": [" He", "\n", " He", " He"],
     }[config_name]
     for i, g in enumerate(generations):
