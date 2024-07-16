@@ -103,11 +103,14 @@ RUN apt-get update -y \
 
 ENV PATH="/opt/bin/:/opt/aws/neuron/bin:${PATH}"
 
+ARG REPO_USER
+ARG REPO_SECRET
+
 RUN pip3 install \
     neuronx-cc==2.14.227.0 \
     torch-neuronx==2.1.2.2.2.0 \
     transformers-neuronx==0.11.351 \
-    --extra-index-url=https://pip.repos.neuron.amazonaws.com
+    --extra-index-url=https://${REPO_USER}:${REPO_SECRET}@pip.repos.rc.neuron.annapurna.aws.a2z.com
 
 # Install HuggingFace packages
 RUN pip3 install \
