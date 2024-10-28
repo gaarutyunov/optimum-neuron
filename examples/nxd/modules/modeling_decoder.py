@@ -13,7 +13,7 @@ from modules.model_wrapper import (  # noqa: E402
     CONTEXT_ENCODING_MODEL_TAG,  # noqa: E402
     TOKEN_GENERATION_MODEL_TAG,  # noqa: E402
     ModelWrapper,  # noqa: E402
-    )
+)
 from modules.sampling import Sampler  # noqa: E402
 from neuronx_distributed.trace.model_builder import ModelBuilder
 from safetensors.torch import load_file
@@ -105,12 +105,11 @@ class NeuronModelForCausalLM(GenerationMixin):
 
         config = AutoConfig.from_pretrained(model_path)
         export_config_cls = get_exporter_config_constructor(config.model_type)
-        export_config = export_config_cls()
 
         if not os.path.exists(serialize_base_path):
             os.makedirs(serialize_base_path)
 
-        neuron_config.attn_cls = export_config._ATTN_CLS
+        neuron_config.attn_cls = export_config_cls._ATTN_CLS
         neuron_config.save_pretrained(serialize_base_path)
         base_compile_work_dir = os.environ.get("BASE_COMPILE_WORK_DIR", "/tmp/nxd_model/")
 

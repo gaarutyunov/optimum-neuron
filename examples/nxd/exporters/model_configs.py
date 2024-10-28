@@ -1,4 +1,3 @@
-
 import torch
 from models.llama.neuron_modeling_llama import NeuronLlamaModel
 from modules.autobucketing import generate_buckets, get_context_encoder_bk, get_token_generation_bk
@@ -63,10 +62,10 @@ class LlamaNeuronExportConfig(ExportConfig):
     _MODEL_CLS = NeuronLlamaModel
     _ATTN_CLS = "NeuronLlamaAttention"
 
-    def __init__(self, config: NeuronInferenceConfig, is_prefill: bool, max_input_tokens: int):
+    def __init__(self, config: NeuronInferenceConfig, is_prefill: bool):
         self.is_prefill = is_prefill
         self.config = config
-        self.max_input_tokens = max_input_tokens
+        self.max_input_tokens = config.max_context_length if is_prefill else 1
         if is_prefill:
             if config.enable_bucketing:
                 buckets = generate_buckets(128, config.max_context_length)
@@ -99,7 +98,7 @@ class LlamaNeuronExportConfig(ExportConfig):
         return inputs
 
     def get_model_instance(self):
-        return DecoderModelInstance(model_cls=self.model_cls, config=self.config, buckets=self.buckets)
+        return DecoderModelInstance(model_cls=self._MODEL_CLS, config=self.config, buckets=self.buckets)
 
     def bucket_config(self):
         if not self.config.enable_bucketing:
