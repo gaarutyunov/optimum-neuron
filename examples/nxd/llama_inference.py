@@ -2,10 +2,9 @@ import argparse
 import json
 import os
 import time
-import torch
-
 from typing import Union
-from llama2.neuron_modeling_llama import NeuronLlamaForCausalLM, NeuronLlamaConfig
+
+import torch
 from transformers import AutoTokenizer, GenerationConfig, set_seed
 from transformers.generation import SampleDecoderOnlyOutput, SampleEncoderDecoderOutput
 
@@ -14,6 +13,7 @@ model_path = "/home/ubuntu/optimum-neuron/examples/nxd/Llama-2-7b-chat-hf"
 traced_model_path = "/home/ubuntu/optimum-neuron/examples/nxd/llama-2-7b-chat-hf-trace"
 
 SampleOutput = Union[SampleEncoderDecoderOutput, SampleDecoderOnlyOutput]
+
 
 def generate(model, tokenizer, prompts, max_new_tokens):
     # Sanity checks
@@ -42,10 +42,8 @@ def generate(model, tokenizer, prompts, max_new_tokens):
         output_ids = outputs.sequences
     else:
         output_ids = outputs
-    output_tokens = tokenizer.batch_decode(
-        output_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False
-    )
-    return output_tokens, (end -start)
+    output_tokens = tokenizer.batch_decode(output_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
+    return output_tokens, (end - start)
 
 
 def timed_generate(model, input_ids, output_length):
@@ -98,9 +96,7 @@ def main():
     parent_parser = argparse.ArgumentParser(add_help=False)
     parent_parser.add_argument("model", type=str, help="The HF Hub model id or a local directory.")
     export_parser = subparsers.add_parser("export", parents=[parent_parser], help="Convert model to Neuron.")
-    export_parser.add_argument(
-        "--save_dir", type=str, required=True, help="The save directory."
-    )
+    export_parser.add_argument("--save_dir", type=str, required=True, help="The save directory.")
     export_parser.add_argument(
         "--batch_size",
         type=int,
@@ -108,9 +104,7 @@ def main():
         help="The batch size.",
     )
     export_parser.add_argument("--sequence_length", type=int, help="The maximum sequence length.")
-    export_parser.add_argument(
-        "--tp_degree", type=int, default=2, help="The level of tensor parallelism."
-    )
+    export_parser.add_argument("--tp_degree", type=int, default=2, help="The level of tensor parallelism.")
     run_parser = subparsers.add_parser(
         "run", parents=[parent_parser], help="Generate tokens using the specified model."
     )
@@ -120,11 +114,13 @@ def main():
         default="The color of the sky is",
         help="The prompts to use for generation, using | as separator.",
     )
-    run_parser.add_argument("--max_new_tokens", type=int, default=128, help="The number of new tokens in the generated sequences.")
-    bench_parser = subparsers.add_parser(
-        "bench", parents=[parent_parser], help="Benchmark the specified model."
+    run_parser.add_argument(
+        "--max_new_tokens", type=int, default=128, help="The number of new tokens in the generated sequences."
     )
-    bench_parser.add_argument("--inc-length", type=int, default=512, help="The number of input tokens in each increment.")
+    bench_parser = subparsers.add_parser("bench", parents=[parent_parser], help="Benchmark the specified model.")
+    bench_parser.add_argument(
+        "--inc-length", type=int, default=512, help="The number of input tokens in each increment."
+    )
     bench_parser.add_argument("--max-length", type=int, default=4096, help="The maximum number of input tokens.")
     bench_parser.add_argument("--new-tokens", type=int, default=128, help="The number of generated tokens.")
 
@@ -154,7 +150,7 @@ def main():
         neuron_config.do_sample = True
         neuron_config.top_k = 1
 
-        NeuronLlamaForCausalLM.export(
+        NeuronModelForCausalLM.export(
             args.model,
             neuron_config,
             serialize_base_path=args.save_dir,
@@ -163,7 +159,7 @@ def main():
         tokenizer.save_pretrained(args.save_dir)
     elif args.action == "run":
         start = time.time()
-        neuron_model = NeuronLlamaForCausalLM.load(args.model)
+        neuron_model = NeuronModelForCausalLM.load(args.model)
         end = time.time()
         print(f"Neuron model loaded in {end - start:.2f} s")
         batch_size = neuron_model.config.batch_size
@@ -178,7 +174,10 @@ def main():
     elif args.action == "bench":
         neuron_model = NeuronLlamaForCausalLM.load(args.model)
         model_name = os.path.basename(os.path.normpath(args.model))
-        benchmark(neuron_model, tokenizer, args.inc_length, args.max_length, args.new_tokens, json_path=f"{model_name}.json")
+        benchmark(
+            neuron_model, tokenizer, args.inc_length, args.max_length, args.new_tokens, json_path=f"{model_name}.json"
+        )
+
 
 if __name__ == "__main__":
     main()
