@@ -5,6 +5,8 @@ import time
 from typing import Union
 
 import torch
+from modules.config import NeuronInferenceConfig
+from modules.modeling_decoder import NeuronModelForCausalLM
 from transformers import AutoTokenizer, GenerationConfig, set_seed
 from transformers.generation import SampleDecoderOnlyOutput, SampleEncoderDecoderOutput
 
@@ -130,7 +132,7 @@ def main():
     tokenizer.padding_size = "right"
 
     if args.action == "export":
-        neuron_config = NeuronLlamaConfig.from_pretrained(args.model)
+        neuron_config = NeuronInferenceConfig.from_model_config(args.model)
         neuron_config.enable_bucketing = True
         neuron_config.tp_degree = args.tp_degree
         neuron_config.batch_size = args.batch_size
@@ -172,7 +174,7 @@ def main():
             print(f"output {idx}: {output}")
         print(f"{len(outputs)} outputs generated using Neuron model in {latency:.4f} s")
     elif args.action == "bench":
-        neuron_model = NeuronLlamaForCausalLM.load(args.model)
+        neuron_model = NeuronModelForCausalLM.load(args.model)
         model_name = os.path.basename(os.path.normpath(args.model))
         benchmark(
             neuron_model, tokenizer, args.inc_length, args.max_length, args.new_tokens, json_path=f"{model_name}.json"

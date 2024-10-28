@@ -1,6 +1,5 @@
 from torch import argmax, count_nonzero, cumsum, gather, nn, rand, subtract, topk
 from torch_neuronx.xla_impl.ops import Argmax, Softmax, TopK
-from transformers import PretrainedConfig
 
 
 class Sampler:

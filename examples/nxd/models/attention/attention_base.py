@@ -3,7 +3,7 @@ import math
 from typing import Optional, Tuple
 
 import torch
-from modules.attention.utils import apply_rotary_pos_emb, manual_softmax, move_heads_front, repeat_kv
+from models.attention.utils import apply_rotary_pos_emb, manual_softmax, move_heads_front, repeat_kv
 from torch import Tensor, nn
 
 
@@ -12,7 +12,7 @@ try:
     from neuronxcc.nki._private_kernels.attention import attention_isa_kernel  # noqa: E402
 except ImportError:
     from neuronxcc.nki.kernels.attention import attention_isa_kernel  # noqa: E402
-from modules.gqa import (  # noqa: E402
+from models.gqa import (  # noqa: E402
     GroupQueryAttention_O,  # noqa: E402
     GroupQueryAttention_QKV,  # noqa: E402
 )  # noqa: E402

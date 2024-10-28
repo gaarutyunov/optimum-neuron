@@ -6,10 +6,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
+from exporters.model_configs import get_export_config
 from modules.autobucketing import slice_lhs, slice_rhs  # noqa: E402
 from modules.checkpoint import load_state_dict
 from modules.config import NeuronInferenceConfig
-from modules.gqa import (  # noqa: E402
+from models.gqa import (  # noqa: E402
     determine_sharding_strategy,  # noqa: E402
     get_shardable_head_counts,  # noqa: E402
 )  # noqa: E402
@@ -25,7 +26,7 @@ from neuronx_distributed.parallel_layers import parallel_state, utils  # noqa: E
 from neuronx_distributed.trace.model_builder import ModelBuilder
 from safetensors.torch import load_file
 from torch import nn
-from transformers import PretrainedConfig, PreTrainedModel
+from transformers import AutoConfig, PretrainedConfig, PreTrainedModel
 from transformers.generation import (
     GenerationConfig,
     GenerationMixin,
@@ -342,11 +343,7 @@ class CheckPointLoader:
         return model_sd
 
 
-class NeuronBaseForCausalLM(GenerationMixin):
-    _STATE_DICT_MODEL_PREFIX = "model."
-
-    _model_cls = None
-    _config_cls = None
+class NeuronModelForCausalLM(GenerationMixin):
 
     # Required by GenerationMixin, but present in PreTrainedModel
     main_input_name = "input_ids"
@@ -379,28 +376,30 @@ class NeuronBaseForCausalLM(GenerationMixin):
         # Not needed after transformers 4.50
         return True
 
-    @staticmethod
-    def get_compiler_args():
-        return "--enable-saturate-infinity --auto-cast=none --model-type=transformer --tensorizer-options='--enable-ccop-compute-overlap --cc-pipeline-tiling-factor=2' -O1 "
-
     @classmethod
     def from_pretrained(cls, model_path: str, config: PretrainedConfig):
         return cls(model_path, config)
 
     @classmethod
-    def export(cls, model_path: Union[str, Path], config: NeuronInferenceConfig, serialize_base_path=None):
+    def export(cls, model_path: Union[str, Path], neuron_config: NeuronInferenceConfig, serialize_base_path=None):
+
+        config = AutoConfig.from_pretrained(model_path)
+        export_config = get_export_config(config.model_type)
 
         if not os.path.exists(serialize_base_path):
             os.makedirs(serialize_base_path)
 
-        config.save_pretrained(serialize_base_path)
+        neuron_config.attn_cls = export_config._ATTN_CLS
+        neuron_config.save_pretrained(serialize_base_path)
         base_compile_work_dir = os.environ.get("BASE_COMPILE_WORK_DIR", "/tmp/nxd_model/")
 
-        checkpoint_loader = CheckPointLoader(model_path, cls._STATE_DICT_MODEL_PREFIX, config.torch_dtype)
+        checkpoint_loader = CheckPointLoader(
+            model_path, export_config._STATE_DICT_MODEL_PREFIX, neuron_config.torch_dtype
+        )
 
         builder = ModelBuilder(
             router=None,
-            tp_degree=config.tp_degree,
+            tp_degree=neuron_config.tp_degree,
             checkpoint_loader=checkpoint_loader.load_checkpoint,
             compiler_workdir=base_compile_work_dir,
         )
@@ -413,8 +412,8 @@ class NeuronBaseForCausalLM(GenerationMixin):
         # For LLM models, we typically use different sets of SPMDBucketModel for encoding and
         # token generation, each with its own list of buckets.
         exporters = [
-            ContextEncodingModelExporter(cls._model_cls, config),
-            TokenGenerationModelExporter(cls._model_cls, config),
+            ContextEncodingModelExporter(export_config._MODEL_CLS, neuron_config),
+            TokenGenerationModelExporter(export_config._MODEL_CLS, neuron_config),
         ]
         for exporter in exporters:
             # We need a pickable object to provide the callbacks required by the Builder
@@ -423,12 +422,12 @@ class NeuronBaseForCausalLM(GenerationMixin):
                 model_instance=exporter.get_model_instance(),
                 example_inputs=exporter.input_generator(),
                 bucket_config=exporter.bucket_config(),
-                compiler_args=cls.get_compiler_args(),
+                compiler_args=export_config.get_compiler_args(),
                 priority_model_idx=None,
             )
 
         traced_model = builder.trace(initialize_model_weights=False)
-        torch.jit.save(traced_model, NeuronBaseForCausalLM.get_traced_model_path(serialize_base_path))
+        torch.jit.save(traced_model, NeuronModelForCausalLM.get_traced_model_path(serialize_base_path))
         del traced_model
 
         builder.shard_checkpoint(serialize_path=os.path.join(serialize_base_path, "weights/"))
@@ -440,9 +439,9 @@ class NeuronBaseForCausalLM(GenerationMixin):
     @classmethod
     def load(cls, serialize_base_path):
 
-        config = cls._config_cls.from_pretrained(serialize_base_path)
+        config = NeuronInferenceConfig.from_pretrained(serialize_base_path)
 
-        traced_model = torch.jit.load(NeuronBaseForCausalLM.get_traced_model_path(serialize_base_path))
+        traced_model = torch.jit.load(NeuronModelForCausalLM.get_traced_model_path(serialize_base_path))
 
         SHARD_PREFIX = "tp"
         SHARD_SUFFIX = "_sharded_checkpoint.safetensors"

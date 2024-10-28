@@ -1,4 +1,4 @@
-from transformers import PretrainedConfig
+from transformers import AutoConfig, PretrainedConfig
 
 
 class NeuronInferenceConfig(PretrainedConfig):
@@ -36,3 +36,8 @@ class NeuronInferenceConfig(PretrainedConfig):
         self.enable_bucketing = kwargs.get("enable_bucketing", False)
 
         super().__init__(**kwargs)
+
+    @classmethod
+    def from_model_config(cls, pretrained_model_name_or_path, **kwargs):
+        config = AutoConfig.from_pretrained(pretrained_model_name_or_path)
+        return cls(**config.to_dict(), **kwargs)

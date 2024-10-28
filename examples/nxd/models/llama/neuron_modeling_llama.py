@@ -21,9 +21,12 @@
 from typing import Optional, Tuple, Type, Union
 
 import torch
-from modules.attention.attention_base import NeuronAttentionBase
-from modules.attention.utils import RotaryEmbedding
-from modules.custom_calls import CustomRMSNorm
+from neuronx_distributed.parallel_layers import parallel_state  # noqa: E402
+from neuronx_distributed.parallel_layers.layers import (  # noqa: E402
+    ColumnParallelLinear,  # noqa: E402
+    ParallelEmbedding,  # noqa: E402
+    RowParallelLinear,  # noqa: E402
+)  # noqa: E402
 from torch import nn
 from transformers import LlamaPreTrainedModel
 from transformers.activations import ACT2FN
@@ -38,17 +41,15 @@ from transformers.models.llama.modeling_llama import (
 
 SampleOutput = Union[SampleEncoderDecoderOutput, SampleDecoderOnlyOutput]
 
-from modules.config import NeuronInferenceConfig  # noqa: E402
-from modules.gqa import (  # noqa: E402
+
+from models.attention.attention_base import NeuronAttentionBase  # noqa: E402
+from models.attention.utils import RotaryEmbedding  # noqa: E402
+from models.custom_calls import CustomRMSNorm  # noqa: E402
+from models.decoder import NeuronBaseModel  # noqa: E402
+from models.gqa import (  # noqa: E402
     BaseGroupQueryAttention,  # noqa: E402
 )  # noqa: E402
-from modules.model_base import NeuronBaseForCausalLM, NeuronBaseModel  # noqa: E402
-from neuronx_distributed.parallel_layers import parallel_state  # noqa: E402
-from neuronx_distributed.parallel_layers.layers import (  # noqa: E402
-    ColumnParallelLinear,  # noqa: E402
-    ParallelEmbedding,  # noqa: E402
-    RowParallelLinear,  # noqa: E402
-)  # noqa: E402
+from modules.config import NeuronInferenceConfig  # noqa: E402
 
 
 _LLAMA_MODULE_MAP = {}
@@ -90,12 +91,6 @@ def register_module(key: str):
         return cls
 
     return inner
-
-
-class NeuronLlamaConfig(NeuronInferenceConfig, LlamaConfig):
-    def __init__(self, *args, **kwargs):
-        self.attn_cls = "NeuronLlamaAttention"
-        super().__init__(*args, **kwargs)
 
 
 class NeuronLlamaMLP(nn.Module):
@@ -290,7 +285,7 @@ class NeuronLlamaModel(NeuronBaseModel, LlamaPreTrainedModel):
     The neuron version of the LlamaModel
     """
 
-    def setup_attr_for_model(self, config: NeuronLlamaConfig):
+    def setup_attr_for_model(self, config: NeuronInferenceConfig):
         # Needed for init_inference_optimization()
         self.on_device_sampling = config.on_device_sampling
         self.tp_degree = config.tp_degree
@@ -299,7 +294,7 @@ class NeuronLlamaModel(NeuronBaseModel, LlamaPreTrainedModel):
         self.num_key_value_heads = config.num_key_value_heads
         self.max_batch_size = config.max_batch_size
 
-    def init_model(self, config: NeuronLlamaConfig):
+    def init_model(self, config: NeuronInferenceConfig):
 
         self.padding_idx = config.pad_token_id
         self.vocab_size = config.vocab_size
@@ -323,16 +318,3 @@ class NeuronLlamaModel(NeuronBaseModel, LlamaPreTrainedModel):
 
         self.layers = nn.ModuleList([NeuronLlamaDecoderLayer(config) for _ in range(config.num_hidden_layers)])
         self.norm = get_rmsnorm_cls()(config.hidden_size, eps=config.rms_norm_eps)
-
-
-class NeuronLlamaForCausalLM(NeuronBaseForCausalLM):
-    """
-    This class extends LlamaForCausalLM create traceable
-    blocks for Neuron.
-
-    Args:
-        LlamaForCausalLM (_type_): _description_
-    """
-
-    _model_cls = NeuronLlamaModel
-    _config_cls = NeuronLlamaConfig
