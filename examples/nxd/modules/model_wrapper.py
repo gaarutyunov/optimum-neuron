@@ -209,7 +209,6 @@ class ContextEncodingModelExporter(ModelExporter):
             buckets = generate_buckets(128, config.max_context_length)
         else:
             buckets = [config.max_context_length]
-        print(buckets)
         super().__init__(
             tag=CONTEXT_ENCODING_MODEL_TAG,
             model_cls=model_cls,
@@ -241,7 +240,6 @@ class TokenGenerationModelExporter(ModelExporter):
             buckets = generate_buckets(128, config.max_length)
         else:
             buckets = [config.max_length]
-        print(buckets)
         super().__init__(
             tag=TOKEN_GENERATION_MODEL_TAG,
             model_cls=model_cls,

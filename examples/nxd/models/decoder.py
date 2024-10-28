@@ -1,11 +1,11 @@
 from typing import List, Optional, Union
 
 import torch
-from modules.autobucketing import slice_lhs, slice_rhs  # noqa: E402
 from models.gqa import (  # noqa: E402
     determine_sharding_strategy,  # noqa: E402
     get_shardable_head_counts,  # noqa: E402
 )  # noqa: E402
+from modules.autobucketing import slice_lhs, slice_rhs  # noqa: E402
 from modules.sampling import Sampler  # noqa: E402
 from neuronx_distributed.parallel_layers import parallel_state, utils  # noqa: E402
 from torch import nn
