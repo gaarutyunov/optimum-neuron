@@ -555,8 +555,8 @@ def export_neuronx(
 
     compiler_args = add_stable_diffusion_compiler_args(config, compiler_args)  # diffusers specific
     
-    if getattr(config,"is_decoder", False):
-        compiler_args.append("--model-type=transformer")
+    # if getattr(config,"is_decoder", False):
+    compiler_args.extend(["--model-type", "transformer"])
 
     if config.dynamic_batch_size and not inline_weights_to_neff:
         logger.warning(
